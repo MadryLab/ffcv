@@ -1,4 +1,4 @@
-name: ffcv19
+name: ffcv
 channels:
   - pytorch
   - defaults

@@ -57,7 +57,7 @@ if not USE_FFCV:
     train_loader = DataLoader(dataset, batch_size=2048, num_workers=8, shuffle=True)
 else:
     train_loader = Loader('/tmp/linreg_data.beton', batch_size=2048,
-                    num_workers=8, order=OrderOption.QUASI_RANDOM, os_cache=False,
+                    num_workers=8, order=OrderOption.QUASI_RANDOM, cache_type=1,
                     pipelines={
                         'covariate': [NDArrayDecoder(), ToTensor(), ToDevice(ch.device('cuda:0'))],
                         'label': [NDArrayDecoder(), ToTensor(), Squeeze(), ToDevice(ch.device('cuda:0'))]

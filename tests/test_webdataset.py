@@ -6,7 +6,6 @@ import numpy as np
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 import torch as ch
 from torch.utils.data import Dataset
-import webdataset as wds
 
 from ffcv import DatasetWriter
 from ffcv.reader import Reader
@@ -32,6 +31,7 @@ class DummyDataset(Dataset):
         return (index, np.sin(index))
 
 def write_webdataset(folder, dataset, field_names):
+    import webdataset as wds
     pattern = path.join(folder, "dataset-%06d.tar")
     writer = wds.ShardWriter(pattern, maxcount=20)
     with writer as sink:

@@ -118,6 +118,34 @@ def worker_job_indexed_dataset(input_queue, metadata_sm, metadata_type, fields,
 
     allocations_queue.put(allocator.allocations)
 
+def worker_foder_dataset(input_queue, metadata_sm, metadata_type, fields,
+               allocator, done_number, allocations_queue, dataset):
+
+    metadata = np.frombuffer(metadata_sm.buf, dtype=metadata_type)
+    field_names = metadata_type.names
+
+    # This `with` block ensures that all the pages allocated have been written
+    # onto the file
+    with allocator:
+        while True:
+            chunk = input_queue.get()
+
+            if chunk is None:
+                # No more work left to do
+                break
+
+            # For each sample in the chunk
+            for dest_ix, source_ix in chunk:
+                sample = dataset[source_ix]
+                handle_sample(sample, dest_ix, field_names, metadata, allocator, fields)
+
+            # We warn the main thread of our progress
+            with done_number.get_lock():
+                done_number.value += len(chunk)
+
+    allocations_queue.put(allocator.allocations)
+
+
 
 class DatasetWriter():
     """Writes given dataset into FFCV format (.beton).
@@ -318,6 +346,23 @@ class DatasetWriter():
         todos = zip(shards, offsets)
         self._write_common(total_len, todos, worker_job_webdataset, (pipeline, ))
 
+    def from_image_folder(self, root: str):
+        """Read from image folder.
+        The images with the same class should be in the same folder.
+        
+        Parameters
+        ----------
+        root: str
+            Path to the folder containing the images.
+        """
+        import glob
+        from torchvision.datasets.folder import DatasetFolder
+        classes, class_to_idx = DatasetFolder.find_classes(root)
+        samples = DatasetFolder.make_dataset(root, class_to_idx)   
+        total_len = len(samples)     
+        self._write_common(total_len, samples, worker_foder_dataset, (class_to_idx, ))
+
+        
 
     def finalize(self, allocations) :
         # Writing metadata

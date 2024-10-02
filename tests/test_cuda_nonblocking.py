@@ -66,7 +66,7 @@ def run_cuda(weight, sync):
                 order=OrderOption.QUASI_RANDOM,
                 indices=np.arange(n_samples),
                 drop_last=False,
-                os_cache=True,
+                cache_type=1,
                 pipelines={
                     'mask': [NDArrayDecoder(), ToTensor(), ToDevice(ch.device('cuda:0'), non_blocking=False)],
                     'targets': [NDArrayDecoder(), ToTensor(), ToDevice(ch.device('cuda:0'), non_blocking=False)],

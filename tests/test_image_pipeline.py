@@ -104,3 +104,6 @@ def test_simple_jpg_image_pipeline():
 
 def test_simple_jpg_image_pipeline_rev():
     create_and_validate(500, 'jpg', True)
+
+def test_simple_png_image_pipeline():
+    create_and_validate(500, 'png', False)

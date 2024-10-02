@@ -47,7 +47,7 @@ ORDER_MAP: Mapping[ORDER_TYPE, TraversalOrder] = {
 }
 
 DEFAULT_PROCESS_CACHE = int(environ.get('FFCV_DEFAULT_CACHE_PROCESS', "0"))
-DEFAULT_OS_CACHE = not DEFAULT_PROCESS_CACHE
+
 
 class Loader:
     """FFCV loader class that can be used as a drop-in replacement
@@ -90,7 +90,7 @@ class Loader:
                  fname: str,
                  batch_size: int,
                  num_workers: int = -1,
-                 os_cache: bool = DEFAULT_OS_CACHE,
+                 cache_type: int = DEFAULT_PROCESS_CACHE,
                  order: Union[ORDER_TYPE, TraversalOrder] = OrderOption.SEQUENTIAL,
                  distributed: bool = False,
                  seed: int = None,  # For ordering of samples
@@ -118,7 +118,7 @@ class Loader:
             'fname': fname,
             'batch_size': batch_size,
             'num_workers': num_workers,
-            'os_cache': os_cache,
+            'cache_type': cache_type,
             'order': order,
             'distributed': distributed,
             'seed': seed,
@@ -149,23 +149,35 @@ class Loader:
         else:
             self.indices = np.array(indices)
 
-        if os_cache:
+        if cache_type == 0:
             self.memory_manager: MemoryManager = OSCacheManager(self.reader)
-        else:
+        elif cache_type == 1:
             self.memory_manager: MemoryManager = ProcessCacheManager(
                 self.reader)
-
+        elif cache_type == 2:
+            from ffcv.memory_managers.shared_cache import SharedMemoryManager
+            self.memory_manager: MemoryManager = SharedMemoryManager(self.reader)
+        else:
+            raise ValueError("Unknown cache type. Use 0 for process cache, 1 for os cache, or 2 for no cache.")
+        
         if order in ORDER_MAP:
             self.traversal_order: TraversalOrder = ORDER_MAP[order](self)
+        elif isinstance(order, TraversalOrder):
+            self.traversal_order: TraversalOrder = order(self)
         elif issubclass(order, TraversalOrder):
-            self.traversal_order: TraversalOrder = order(self, **order_kwargs)
+            self.traversal_order: TraversalOrder = order(self)
         else:
             raise ValueError(f"Order {order} is not a supported order type or a subclass of TraversalOrder")
 
-        memory_read = self.memory_manager.compile_reader()
+        self.compile_pipeline(pipelines)
+        
+        
         self.next_epoch: int = 0
 
-        self.pipelines = {}
+        self.first_traversal_order = self.next_traversal_order()
+
+    def compile_pipeline(self,pipelines):
+        
         self.pipeline_specs = {}
         self.field_name_to_f_ix = {}
         
@@ -186,7 +198,7 @@ class Loader:
                 raise ValueError(msg)
             custom_pipeline_specs[output_name] = spec
 
-        # Adding the default pipelines
+        # Adding the default pipelines, WARN: disable default pipelines
         for f_ix, (field_name, field) in enumerate(self.reader.handlers.items()):
             self.field_name_to_f_ix[field_name] = f_ix
 
@@ -204,12 +216,12 @@ class Loader:
             if field_name not in self.pipeline_specs:
                 self.pipeline_specs[field_name] = spec
 
+        memory_read = self.memory_manager.compile_reader()
         self.graph = Graph(self.pipeline_specs, self.reader.handlers,
                            self.field_name_to_f_ix, self.reader.metadata,
                            memory_read)
         
         self.generate_code()
-        self.first_traversal_order = self.next_traversal_order()
 
     def next_traversal_order(self):
         return self.traversal_order.sample_order(self.next_epoch)

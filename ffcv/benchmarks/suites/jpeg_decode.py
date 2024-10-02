@@ -14,9 +14,9 @@ from ...libffcv import imdecode
 @benchmark({
     'n': [500],
     'source_image': ['../../../test_data/pig.png'],
-    'image_width': [500, 256, 1024],
-    'quality': [50, 90],
-    'compile': [True]
+    'image_width': [224, 500, 1024],
+    'quality': [50, 80, 90, 95],
+    'compile': [True],
 })
 class JPEGDecodeBenchmark(Benchmark):
 
