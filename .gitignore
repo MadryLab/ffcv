@@ -3,7 +3,7 @@ src
 __pycache__/
 *.py[cod]
 *$py.class
-
+outputs/
 .vscode
 
 # C extensions

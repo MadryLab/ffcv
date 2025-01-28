@@ -42,18 +42,21 @@ class DummyDataset(Dataset):
     'length': [3000],
     'mode': [
         'raw',
-        'jpg'
+        'jpg',
+        'png',
         ],
     'num_workers': [
         1,
         8,
-        16
+        16,
+        32,
     ],
     'batch_size': [
         500
     ],
     'size': [
         (32, 32),  # CIFAR
+        (224,224),
         (300, 500),  # ImageNet
     ],
     'compile': [
@@ -83,13 +86,12 @@ class ImageReadBench(Benchmark):
         self.handle.__enter__()
         name = self.handle.name
 
-        writer = DatasetWriter(self.length, name, {
+        writer = DatasetWriter(name, {
             'index': IntField(),
             'value': RGBImageField(write_mode=self.mode)
         })
 
-        with writer:
-            writer.write_pytorch_dataset(self.dataset, num_workers=-1, chunksize=100)
+        writer.from_indexed_dataset(self.dataset, chunksize=100)
 
         reader = Reader(name)
         manager = OSCacheManager(reader)

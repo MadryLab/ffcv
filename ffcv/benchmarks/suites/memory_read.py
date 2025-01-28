@@ -59,13 +59,12 @@ class MemoryReadBytesBench(Benchmark):
         handle = self.handle.__enter__()
         name = handle.name
         dataset = DummyDataset(self.num_samples, self.size_bytes)
-        writer = DatasetWriter(self.num_samples, name, {
+        writer = DatasetWriter(name, {
             'index': IntField(),
             'value': BytesField()
-        })
+        }, num_workers=-1)
 
-        with writer:
-            writer.write_pytorch_dataset(dataset, num_workers=-1, chunksize=100)
+        writer.from_indexed_dataset(dataset,  chunksize=100)
 
         reader = Reader(name)
         manager = OSCacheManager(reader)

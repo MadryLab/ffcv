@@ -73,7 +73,10 @@ def pkgconfig(package, kw):
     if 'not found' in output:
         raise RuntimeError(f"Could not find required package: {package}.")
     for token in output.strip().split():
-        kw.setdefault(flag_map.get(token[:2]), []).append(token[2:])
+        key = flag_map.get(token[:2])
+        value = token[2:]
+        if not(key is None):
+            kw.setdefault(key, []).append(value)
     return kw
 
 
@@ -101,12 +104,13 @@ else:
 libffcv = Extension('ffcv._libffcv',
                         **extension_kwargs)
 
+
 setup(name='ffcv',
-      version='1.0.1',
+      version='1.1.2',
       description=' FFCV: Fast Forward Computer Vision ',
       author='MadryLab',
       author_email='ffcv@mit.edu',
-      url='https://github.com/libffcv/ffcv',
+      url='https://github.com/erow/ffcv',
       license_files = ('LICENSE.txt',),
       packages=find_packages(),
       long_description=long_description,
@@ -114,7 +118,7 @@ setup(name='ffcv',
       ext_modules=[libffcv],
       install_requires=[
           'terminaltables',
-          'pytorch_pfn_extras',
+          #'pytorch_pfn_extras',
           'fastargs',
           'opencv-python',
           'assertpy',
